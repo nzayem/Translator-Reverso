@@ -2,20 +2,28 @@ from itertools import chain
 import requests
 from bs4 import BeautifulSoup as Soup
 
+
+def print_results(target_language, file_name, words_list, sentences_list):
+
+    # Printing translated words:
+    file_name.write(f'\n\n{target_language} Translations:\n')
+    print(f'\n{target_language} Translations:\n')
+    for translated_word in words_list:
+        output.write('\n' + translated_word)
+        print(translated_word)
+
+    # Printing Examples of sentences:
+    file_name.write(f'\n\n{target_language} Examples:\n')
+    print(f'\n{target_language} Examples:\n')
+    for sentence in sentences_list:
+        file_name.write('\n' + sentence)
+        print(sentence)
+
+
 print("Hello, you're welcome to the translator. Translator supports: ")
-print('''1. Arabic
-2. German
-3. English
-4. Spanish
-5. French
-6. Hebrew
-7. Japanese
-8. Dutch
-9. Polish
-10. Portuguese
-11. Romanian
-12. Russian
-13. Turkish''')
+
+print("1. Arabic\n2. German\n3. English\n4. Spanish\n5. French\n6. Hebrew\n7. Japanese\n8. Dutch\n9. "
+      "Polish\n10.Portuguese\n11. Romanian\n12. Russian\n13. Turkish")
 
 languages = {1: 'Arabic', 2: 'German', 3: 'English', 4: 'Spanish', 5: 'French', 6: 'hebrew', 7: 'Japanese',
              8: 'Dutch', 9: 'Polish', 10: 'Portuguese', 11: 'Romanian', 12: 'Russian', 13: 'Turkish'}
@@ -23,58 +31,71 @@ languages = {1: 'Arabic', 2: 'German', 3: 'English', 4: 'Spanish', 5: 'French', 
 
 key_sr = int(input('Type the number of your language: \n'))
 
-key_tr = int(input('Type the number of language you want to translate to: \n'))
+key_tr = int(input("Type the number of a language you want to translate to or '0' to translate to all languages: \n"))
 
 text = input('Type the word you want to translate:\n')
 
-print(f'You chose {languages[key_tr]} as the language to translate {text} to.')
-
 source_lang = languages[key_sr]
 
-target_lang = languages[key_tr]
-
+target_words = []
+sentences = []
 
 headers = {'User-Agent': 'Mozilla/5.0'}
 
-url = f"https://context.reverso.net/translation/{source_lang.lower()}-{target_lang.lower()}/{text}"
+output = open(f"{text}.txt", 'w', encoding='utf-8')
 
-print(url)
+s = requests.Session()
 
-r = requests.get(url, headers=headers)
+if key_tr == 0:
 
-target_words = []
+    for value in languages.values():
 
-sentences = []
+        url = f"https://context.reverso.net/translation/{source_lang.lower()}-{value.lower()}/{text}"
 
-if r.status_code == 200:
+        r = s.get(url, headers=headers)
 
-    soup = Soup(r.content, 'html.parser')
+        if r.status_code == 200:
 
-    words_tr = soup.find_all('a', {"class": 'translation'})
+            soup = Soup(r.content, 'html.parser')
 
-    source_sentences = soup.find_all('div', {"class": "src ltr"})
+            words_tr = soup.find_all('a', {"class": 'translation'})
 
-    target_sentences = soup.find_all('div', {"class": "trg ltr"})
+            source_sentences = soup.find_all('div', {"class": "src ltr"})
 
-    for word in words_tr:
-        target_words.append(word.get_text().strip())
+            target_sentences = soup.find_all('div', {"class": ["trg ltr", "trg rtl arabic", "trg rtl"]})
 
-    sentences = [sentence.get_text().strip() for sentence in
-                 list(chain(*[sentence_pair for sentence_pair in zip(source_sentences, target_sentences)]))]
+            for word in words_tr:
+                target_words.append(word.get_text().strip())
+
+            sentences = [sentence.get_text().strip() for sentence in
+                         list(chain(*[sentence_pair for sentence_pair in zip(source_sentences, target_sentences)]))]
+
+            print_results(value, output, target_words, sentences)
+
+            target_words = []
 
 else:
 
-    print("Connection Error")
+    url = f"https://context.reverso.net/translation/{source_lang.lower()}-{languages[key_tr].lower()}/{text}"
 
-print(f"\n{target_lang.capitalize()} Translations:\n")
+    r = s.get(url, headers=headers)
 
+    if r.status_code == 200:
 
-for word in target_words:
+        soup = Soup(r.content, 'html.parser')
 
-    print(word)
+        words_tr = soup.find_all('a', {"class": 'translation'})
 
-print(f'\n{target_lang.capitalize()} Examples:\n')
+        source_sentences = soup.find_all('div', {"class": "src ltr"})
 
-for sentence in sentences:
+        target_sentences = soup.find_all('div', {"class": "trg ltr"})
 
-    print(sentence)
+        for word in words_tr:
+            target_words.append(word.get_text().strip())
+
+        sentences = [sentence.get_text().strip() for sentence in
+                     list(chain(*[sentence_pair for sentence_pair in zip(source_sentences, target_sentences)]))]
+
+        print_results(languages[key_tr], output, target_words, sentences)
+
+output.close()
