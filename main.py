@@ -88,7 +88,7 @@ else:
 
         source_sentences = soup.find_all('div', {"class": "src ltr"})
 
-        target_sentences = soup.find_all('div', {"class": "trg ltr"})
+        target_sentences = soup.find_all('div', {"class": ["trg ltr", "trg rtl arabic", "trg rtl"]})
 
         for word in words_tr:
             target_words.append(word.get_text().strip())
